@@ -63,11 +63,14 @@ function etsy_shop_post( $the_content ) {
                                 $tags = '<table class="listing-table"><tr>';
                                 $n = 1;
                                 foreach ($listings->results as $result) {
-                                        $tags = $tags.'<td>'.etsy_shop_generate_listing($result->listing_id, $result->title, $result->state, $result->price, $result->currency_code, $result->quantity, $result->url).'</td>';
-                                        $n++;
-                                        if ($n == 4) {
-                                                $tags = $tags.'</tr><tr>';
-                                                $n = 1;
+                                        $listing_html = etsy_shop_generate_listing($result->listing_id, $result->title, $result->state, $result->price, $result->currency_code, $result->quantity, $result->url);
+                                        if ($listing_html !== false) {
+                                            $tags = $tags.'<td>'.$listing_html.'</td>';
+                                            $n++;
+                                            if ($n == 4) {
+                                                    $tags = $tags.'</tr><tr>';
+                                                    $n = 1;
+                                            }
                                         }
                                 }
                                 $tags = $tags.'</tr></table>';
@@ -174,7 +177,7 @@ function etsy_shop_generate_listing($listing_id, $title, $state, $price, $curren
     // if the Shop Item is active
     if ($state == 'active') {
         // todo translation
-        $state = 'Disponible';
+        $state = __('Available', 'etsyshop');
         
         $script_tags =  '
             <div class="listing-card" id="' . $etsy_listing_id . '">
@@ -194,7 +197,7 @@ function etsy_shop_generate_listing($listing_id, $title, $state, $price, $curren
             
         return $script_tags;
     } else {
-        return '';
+        return false;
     }
 }
 
