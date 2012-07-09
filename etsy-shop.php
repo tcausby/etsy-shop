@@ -6,7 +6,7 @@
 Plugin Name: Etsy Shop
 Description: Inserts Etsy Shop in post or page using bracket/shortcode method.
 Author: Frédéric Sheedy
-Version: 0.8
+Version: 0.8.1
 */
 
 /*  
