@@ -1,0 +1,83 @@
+.etsy-shop-listing-table {
+    border: 0px;
+}
+
+td.etsy-shop-listing {
+    border: 0px;
+}
+
+.etsy-shop-listing-card {
+    background-color: white; 
+    border: 1px solid #EAEAEA; 
+    display: block; 
+    width:172px; 
+    margin: 0; 
+    padding: 6px; 
+    font-family: Arial,Helvetica,sans-serif; 
+    font-size: 12px;
+    margin-bottom: 10px;
+    margin-right: 7px;
+}
+
+.etsy-shop-listing-thumb {
+    height: 135px;
+    width: 170px;
+    display: block;
+}
+
+.etsy-shop-listing-thumb img {
+    margin: 0; 
+    padding: 0;
+}
+
+.etsy-shop-listing-detail {
+    margin: 0; 
+    padding: 0; 
+    text-align: left;
+}
+
+.etsy-shop-listing-title {
+    height: 15px; 
+    line-height: 15px !important; 
+    margin: 0; 
+    padding: 0;
+    margin-top: 5px; 
+    overflow: hidden;
+}
+
+.etsy-shop-listing-title a {
+    color: #666; 
+    text-decoration: none;
+}
+
+.etsy-shop-listing-title a:hover{
+    text-decoration: underline;
+}
+
+.etsy-shop-listing-maker {
+    line-height: 14px !important; 
+    margin: 0; 
+    padding: 0;
+}
+
+.etsy-shop-listing-maker a {
+    color: #B2B2B2; 
+    text-decoration: none; 
+    padding: 0; 
+    margin: 0;
+}
+
+.etsy-shop-listing-maker a:hover{
+    text-decoration: underline;
+}
+
+.etsy-shop-listing-price {
+    color: #78C042; 
+    float: right; 
+    line-height: 14px !important; 
+    margin-top: -14px;
+}
+
+.etsy-shop-currency-code {
+    font-size: 10px;
+}

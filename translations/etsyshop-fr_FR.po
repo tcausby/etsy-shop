@@ -1,0 +1,51 @@
+# Copyright (C) 2012 
+# This file is distributed under the same license as the  package.
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: http://wordpress.org/extend/plugins/etsy-shop\n"
+"POT-Creation-Date: 2012-07-09 23:00:01+00:00\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"PO-Revision-Date: 2012-07-09 19:14-0500\n"
+"Last-Translator: Frédéric Sheedy <sheedf@gmail.com>\n"
+"Language-Team: Frédéric Sheedy <sheedf@gmail.com>\n"
+
+#: etsy-shop.php:180
+msgid "Available"
+msgstr "Disponible"
+
+#: etsy-shop.php:219
+#: etsy-shop.php:250
+msgid "Etsy Shop Options"
+msgstr "Options de Etsy Shop"
+
+#: etsy-shop.php:219
+msgid "Etsy Shop"
+msgstr "Etsy Shop"
+
+#: etsy-shop.php:225
+msgid "You do not have sufficient permissions to access this page."
+msgstr "Vous n'avez pas les droits nécessaire pour accédez à cette page."
+
+#: etsy-shop.php:244
+msgid "Options saved."
+msgstr "Options enregistrées."
+
+#: etsy-shop.php:254
+msgid "Etsy API Key"
+msgstr "Clé API de Etsy"
+
+#: etsy-shop.php:260
+msgid "Save Changes"
+msgstr "Enregistrer les modifcations"
+
+#: etsy-shop.php:275
+msgid "Etsy Shop is almost ready."
+msgstr "Etsy Shop est presque prêt."
+
+#: etsy-shop.php:275
+msgid "You must <a href=\"%1$s\">enter your Etsy API key</a> for it to work."
+msgstr "Vous devez <a href=\"%1$s\">enter your Etsy API key</a> for it to work."
+
