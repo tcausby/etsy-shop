@@ -312,7 +312,9 @@ function etsy_shop_optionsPage() {
                                 $time_zone = get_option('timezone_string');
                                 date_default_timezone_set( $time_zone );
                                 foreach ($files as $file) {
-                                    $etsy_shop_section = explode( "-", strstr(basename( $file ), '_cache.json', true ) );
+                                    // downgrade to support PHP 5.2.4
+                                    //$etsy_shop_section = explode( "-", strstr(basename( $file ), '_cache.json', true ) );
+                                    $etsy_shop_section = explode( "-", substr( basename( $file ), 0, strpos( basename( $file ), '_cache.json' ) ) );
                                     $etsy_shop_section_info = etsy_shop_getShopSection($etsy_shop_section[0], $etsy_shop_section[1]);
                                     if ( !is_wp_error( $etsy_shop_section_info ) ) {
                                         echo '<tr><td>' . $etsy_shop_section[0] . ' / ' . $etsy_shop_section_info->results[0]->title . '</td><td>' . basename( $file ) . '</td><td>' .  date( "Y-m-d H:i:s", filemtime( $file ) ) . '</td></tr>';
