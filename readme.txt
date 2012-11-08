@@ -3,7 +3,7 @@ Contributors: fsheedy
 Tags: etsy, etsy listing, bracket, shortcode, shopping, shop, store, sell
 Tested up to: 3.4.2
 Requires at least: 3.4.2
-Stable tag: 0.9.0
+Stable tag: 0.9.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -64,6 +64,10 @@ Please make sure that your API Key is valid.
 3. Edit Post to include Etsy Shop
 
 == Changelog ==
+
+= 0.9.1 =
+* Debug Mode available.
+* Options page compatible with PHP 5.2.X.
 
 = 0.9.0 =
 * Optimization of API request.
