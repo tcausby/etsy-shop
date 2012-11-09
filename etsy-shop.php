@@ -7,7 +7,7 @@ Plugin Name: Etsy Shop
 Plugin URI: http://wordpress.org/extend/plugins/etsy-shop/
 Description: Inserts Etsy products in page or post using bracket/shortcode method.
 Author: Frédéric Sheedy
-Version: 0.9.2
+Version: 0.9.3
 */
 
 /*  
@@ -35,7 +35,7 @@ Version: 0.9.2
  * TODO: get Etsy translations
  */
 
-define( 'ETSY_SHOP_VERSION',  '0.9.2');
+define( 'ETSY_SHOP_VERSION',  '0.9.3');
 define( 'ETSY_SHOP_CACHE_LIFE',  21600 ); // 6 hours in seconds
 
 // load translation
@@ -201,6 +201,15 @@ function etsy_shop_api_request( $etsy_request, $args = NULL, $noDebug = NULL ) {
     
     $request = wp_remote_request( $url );
     
+    if ( get_option( 'etsy_shop_debug_mode' ) AND !$noDebug ) {
+        echo( '<h3>--- Etsy Debug Mode - version ' . ETSY_SHOP_VERSION . ' ---</h3>' );
+        echo( '<p>Go to Etsy Shop Options page if you wan\'t to disable debug output.</p>' );
+        print_r( '<h3>--- Etsy Request URL ---</h3>' );
+        print_r( $url );
+        print_r( '<h3>--- Etsy Response ---</h3>' );
+        print_r( $request );
+    }
+    
     if ( !is_wp_error( $request ) ) {
         if ( $request['response']['code'] == 200 ) {
             $request_body = $request['body'];
@@ -209,13 +218,6 @@ function etsy_shop_api_request( $etsy_request, $args = NULL, $noDebug = NULL ) {
         }
     } else {
         return  new WP_Error( 'etsy-shop', __( 'Etsy Shop: Error on API Request', 'etsyshop' ) );
-    }
-    
-    if ( get_option( 'etsy_shop_debug_mode' ) AND !$noDebug ) {
-        print_r( '<h3>--- Etsy Request URL ---</h3>' );
-        print_r( $url );
-        print_r( '<h3>--- Etsy Response ---</h3>' );
-        print_r( $request );
     }
     
     return $request_body;
@@ -280,7 +282,7 @@ function etsy_shop_optionsPage() {
     if ( isset( $_POST['submit'] ) ) {
         // did the user enter an API Key?
         if ( isset( $_POST['etsy_shop_api_key'] ) ) {
-            $etsy_shop_api_key = wp_filter_nohtml_kses( $_POST['etsy_shop_api_key'] );
+            $etsy_shop_api_key = wp_filter_nohtml_kses( str_replace( ' ', '', $_POST['etsy_shop_api_key'] ) );
             update_option( 'etsy_shop_api_key', $etsy_shop_api_key );
 
             // and remember to note the update to user
