@@ -7,7 +7,7 @@ Plugin Name: Etsy Shop
 Plugin URI: http://wordpress.org/extend/plugins/etsy-shop/
 Description: Inserts Etsy products in page or post using bracket/shortcode method.
 Author: Frédéric Sheedy
-Version: 0.9.1
+Version: 0.9.2
 */
 
 /*  
@@ -35,7 +35,7 @@ Version: 0.9.1
  * TODO: get Etsy translations
  */
 
-define( 'ETSY_SHOP_VERSION',  '0.9.1');
+define( 'ETSY_SHOP_VERSION',  '0.9.2');
 define( 'ETSY_SHOP_CACHE_LIFE',  21600 ); // 6 hours in seconds
 
 // load translation
@@ -145,7 +145,7 @@ function etsy_shop_getShopSectionListings( $etsy_shop_id, $etsy_section_id ) {
     $etsy_cache_file = dirname( __FILE__ ).'/tmp/'.$etsy_shop_id.'-'.$etsy_section_id.'_cache.json';
     
     // if no cache file exist
-    if (!file_exists( $etsy_cache_file ) or ( time() - filemtime( $etsy_cache_file ) >= ETSY_SHOP_CACHE_LIFE ) ) {
+    if (!file_exists( $etsy_cache_file ) or ( time() - filemtime( $etsy_cache_file ) >= ETSY_SHOP_CACHE_LIFE ) or get_option( 'etsy_shop_debug_mode' ) ) {
         $reponse = etsy_shop_api_request( "shops/$etsy_shop_id/sections/$etsy_section_id/listings/active", '&includes=Images' );
         if ( !is_wp_error( $reponse ) ) {
             // if request OK
@@ -161,12 +161,18 @@ function etsy_shop_getShopSectionListings( $etsy_shop_id, $etsy_section_id ) {
         $reponse = file_get_contents( $etsy_cache_file );
     }
     
+    if ( get_option( 'etsy_shop_debug_mode' ) ) {
+        $file_content = file_get_contents( $etsy_cache_file );
+        print_r( '<h3>--- Etsy Cache File:' . $etsy_cache_file . ' ---</h3>' );
+        print_r( $file_content );
+    }
+    
     $data = json_decode( $reponse );
     return $data;
 }
 
 function etsy_shop_getShopSection( $etsy_shop_id, $etsy_section_id ) {
-    $reponse = etsy_shop_api_request( "shops/$etsy_shop_id/sections/$etsy_section_id" );
+    $reponse = etsy_shop_api_request( "shops/$etsy_shop_id/sections/$etsy_section_id", NULL , 1 );
     if ( !is_wp_error( $reponse ) ) {
         $data = json_decode( $reponse );
     } else {
@@ -178,7 +184,7 @@ function etsy_shop_getShopSection( $etsy_shop_id, $etsy_section_id ) {
 }
 
 function etsy_shop_testAPIKey() {
-    $reponse = etsy_shop_api_request( 'listings/active', '&limit=1&offset=0' );
+    $reponse = etsy_shop_api_request( 'listings/active', '&limit=1&offset=0', 1 );
     if ( !is_wp_error( $reponse ) ) {
         $data = json_decode( $reponse );
     } else {
@@ -189,7 +195,7 @@ function etsy_shop_testAPIKey() {
     return $data;
 }
 
-function etsy_shop_api_request( $etsy_request, $args = NULL ) {
+function etsy_shop_api_request( $etsy_request, $args = NULL, $noDebug = NULL ) {
     $etsy_api_key = get_option( 'etsy_shop_api_key' );
     $url = "http://openapi.etsy.com/v2/$etsy_request?api_key=" . $etsy_api_key . $args;
     
@@ -203,6 +209,13 @@ function etsy_shop_api_request( $etsy_request, $args = NULL ) {
         }
     } else {
         return  new WP_Error( 'etsy-shop', __( 'Etsy Shop: Error on API Request', 'etsyshop' ) );
+    }
+    
+    if ( get_option( 'etsy_shop_debug_mode' ) AND !$noDebug ) {
+        print_r( '<h3>--- Etsy Request URL ---</h3>' );
+        print_r( $url );
+        print_r( '<h3>--- Etsy Response ---</h3>' );
+        print_r( $request );
     }
     
     return $request_body;
