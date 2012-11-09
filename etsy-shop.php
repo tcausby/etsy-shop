@@ -7,7 +7,7 @@ Plugin Name: Etsy Shop
 Plugin URI: http://wordpress.org/extend/plugins/etsy-shop/
 Description: Inserts Etsy products in page or post using bracket/shortcode method.
 Author: Frédéric Sheedy
-Version: 0.9.0
+Version: 0.9.3
 */
 
 /*  
@@ -35,7 +35,7 @@ Version: 0.9.0
  * TODO: get Etsy translations
  */
 
-define( 'ETSY_SHOP_VERSION',  '0.9.0');
+define( 'ETSY_SHOP_VERSION',  '0.9.3');
 define( 'ETSY_SHOP_CACHE_LIFE',  21600 ); // 6 hours in seconds
 
 // load translation
@@ -90,27 +90,32 @@ function etsy_shop_post( $the_content ) {
                 if ( $etsy_shop_id != '' || $etsy_section_id != '' ) {
                     // generate listing for shop section
                     $listings = etsy_shop_getShopSectionListings( $etsy_shop_id, $etsy_section_id );
-                    if ( !is_wp_error( $listings ) ) {
-                        $tags = '<table class="etsy-shop-listing-table"><tr>';
-                        $n = 1;
-                        foreach ( $listings->results as $result ) {
-                            $listing_html = etsy_shop_generateListing( $result->listing_id, $result->title, $result->state, $result->price, $result->currency_code, $result->quantity, $result->url, $result->Images[0]->url_170x135 );
-                            if ( $listing_html !== false ) {
-                                $tags = $tags.'<td class="etsy-shop-listing">'.$listing_html.'</td>';
-                                $n++;
-                                if ( $n == 4 ) {
-                                    $tags = $tags.'</tr><tr>';
-                                    $n = 1;
+                    if ( !get_option( 'etsy_shop_debug_mode' ) ) {
+                        if ( !is_wp_error( $listings ) ) {
+                            $tags = '<table class="etsy-shop-listing-table"><tr>';
+                            $n = 1;
+                            foreach ( $listings->results as $result ) {
+                                $listing_html = etsy_shop_generateListing( $result->listing_id, $result->title, $result->state, $result->price, $result->currency_code, $result->quantity, $result->url, $result->Images[0]->url_170x135 );
+                                if ( $listing_html !== false ) {
+                                    $tags = $tags.'<td class="etsy-shop-listing">'.$listing_html.'</td>';
+                                    $n++;
+                                    if ( $n == 4 ) {
+                                        $tags = $tags.'</tr><tr>';
+                                        $n = 1;
+                                    }
                                 }
                             }
-                        }
-                        $tags = $tags.'</tr></table>';
+                            $tags = $tags.'</tr></table>';
 
-                        $new_content = substr( $the_content,0,$spos );
-                        $new_content .= $tags;
-                        $new_content .= substr( $the_content,( $epos+1 ) );
+                            $new_content = substr( $the_content,0,$spos );
+                            $new_content .= $tags;
+                            $new_content .= substr( $the_content,( $epos+1 ) );
+                        } else {
+                            $new_content = $listings->get_error_message();
+                        }
                     } else {
-                        $new_content = $listings->get_error_message();
+                        print_r( '<h2>' . __( 'Etsy Shop Debug Mode', 'etsyshop' ) . '</h2>' );
+                        print_r( $listings );
                     }
                 } else {
                     // must have 2 arguments
@@ -140,7 +145,7 @@ function etsy_shop_getShopSectionListings( $etsy_shop_id, $etsy_section_id ) {
     $etsy_cache_file = dirname( __FILE__ ).'/tmp/'.$etsy_shop_id.'-'.$etsy_section_id.'_cache.json';
     
     // if no cache file exist
-    if (!file_exists( $etsy_cache_file ) or ( time() - filemtime( $etsy_cache_file ) >= ETSY_SHOP_CACHE_LIFE ) ) {
+    if (!file_exists( $etsy_cache_file ) or ( time() - filemtime( $etsy_cache_file ) >= ETSY_SHOP_CACHE_LIFE ) or get_option( 'etsy_shop_debug_mode' ) ) {
         $reponse = etsy_shop_api_request( "shops/$etsy_shop_id/sections/$etsy_section_id/listings/active", '&includes=Images' );
         if ( !is_wp_error( $reponse ) ) {
             // if request OK
@@ -156,12 +161,18 @@ function etsy_shop_getShopSectionListings( $etsy_shop_id, $etsy_section_id ) {
         $reponse = file_get_contents( $etsy_cache_file );
     }
     
+    if ( get_option( 'etsy_shop_debug_mode' ) ) {
+        $file_content = file_get_contents( $etsy_cache_file );
+        print_r( '<h3>--- Etsy Cache File:' . $etsy_cache_file . ' ---</h3>' );
+        print_r( $file_content );
+    }
+    
     $data = json_decode( $reponse );
     return $data;
 }
 
 function etsy_shop_getShopSection( $etsy_shop_id, $etsy_section_id ) {
-    $reponse = etsy_shop_api_request( "shops/$etsy_shop_id/sections/$etsy_section_id" );
+    $reponse = etsy_shop_api_request( "shops/$etsy_shop_id/sections/$etsy_section_id", NULL , 1 );
     if ( !is_wp_error( $reponse ) ) {
         $data = json_decode( $reponse );
     } else {
@@ -173,7 +184,7 @@ function etsy_shop_getShopSection( $etsy_shop_id, $etsy_section_id ) {
 }
 
 function etsy_shop_testAPIKey() {
-    $reponse = etsy_shop_api_request( 'listings/active', '&limit=1&offset=0' );
+    $reponse = etsy_shop_api_request( 'listings/active', '&limit=1&offset=0', 1 );
     if ( !is_wp_error( $reponse ) ) {
         $data = json_decode( $reponse );
     } else {
@@ -184,11 +195,20 @@ function etsy_shop_testAPIKey() {
     return $data;
 }
 
-function etsy_shop_api_request( $etsy_request, $args = NULL ) {
+function etsy_shop_api_request( $etsy_request, $args = NULL, $noDebug = NULL ) {
     $etsy_api_key = get_option( 'etsy_shop_api_key' );
     $url = "http://openapi.etsy.com/v2/$etsy_request?api_key=" . $etsy_api_key . $args;
     
     $request = wp_remote_request( $url );
+    
+    if ( get_option( 'etsy_shop_debug_mode' ) AND !$noDebug ) {
+        echo( '<h3>--- Etsy Debug Mode - version ' . ETSY_SHOP_VERSION . ' ---</h3>' );
+        echo( '<p>Go to Etsy Shop Options page if you wan\'t to disable debug output.</p>' );
+        print_r( '<h3>--- Etsy Request URL ---</h3>' );
+        print_r( $url );
+        print_r( '<h3>--- Etsy Response ---</h3>' );
+        print_r( $request );
+    }
     
     if ( !is_wp_error( $request ) ) {
         if ( $request['response']['code'] == 200 ) {
@@ -254,17 +274,37 @@ function etsy_shop_menu() {
 }
 
 function etsy_shop_optionsPage() {
-        // did the user is allowed?
-        if ( !current_user_can( 'manage_options' ) )  {
-            wp_die( __( 'You do not have sufficient permissions to access this page.', 'etsyshop' ) );
-        }
+    // did the user is allowed?
+    if ( !current_user_can( 'manage_options' ) )  {
+        wp_die( __( 'You do not have sufficient permissions to access this page.', 'etsyshop' ) );
+    }
 
+    if ( isset( $_POST['submit'] ) ) {
         // did the user enter an API Key?
         if ( isset( $_POST['etsy_shop_api_key'] ) ) {
-                $etsy_shop_api_key = wp_filter_nohtml_kses( $_POST['etsy_shop_api_key'] );
-                update_option( 'etsy_shop_api_key', $etsy_shop_api_key );
-                // and remember to note the update to user
-                $updated = true;
+            $etsy_shop_api_key = wp_filter_nohtml_kses( str_replace( ' ', '', $_POST['etsy_shop_api_key'] ) );
+            update_option( 'etsy_shop_api_key', $etsy_shop_api_key );
+
+            // and remember to note the update to user
+            $updated = true;
+        }
+    
+        // did the user enter Debug mode?
+        if ( isset( $_POST['etsy_shop_debug_mode'] ) ) {
+            $etsy_shop_debug_mode = wp_filter_nohtml_kses( $_POST['etsy_shop_debug_mode'] );
+            //die($etsy_shop_debug_mode);
+            update_option( 'etsy_shop_debug_mode', $etsy_shop_debug_mode );
+
+            // and remember to note the update to user
+            $updated = true;
+        }else {
+            $etsy_shop_debug_mode = 0;
+            //die($etsy_shop_debug_mode);
+            update_option( 'etsy_shop_debug_mode', $etsy_shop_debug_mode );
+
+            // and remember to note the update to user
+            $updated = true;
+        }
     }
 
     // grab the Etsy API key
@@ -272,6 +312,13 @@ function etsy_shop_optionsPage() {
         $etsy_shop_api_key = get_option( 'etsy_shop_api_key' );
     } else {
         add_option( 'etsy_shop_api_key', '' );
+    }
+    
+    // grab the Etsy Debug Mode
+    if( get_option( 'etsy_shop_debug_mode' ) ) {
+        $etsy_shop_debug_mode = get_option( 'etsy_shop_debug_mode' );
+    } else {
+        add_option( 'etsy_shop_debug_mode', '0' );
     }
 
     if ( $updated ) {
@@ -285,16 +332,30 @@ function etsy_shop_optionsPage() {
         <form name="etsy_shop_options_form" method="post" action="<?php echo $_SERVER['REQUEST_URI']; ?>">
             <table class="form-table">
                 <tr valign="top">
-                    <th scope="row"><label for="etsy_shop_api_key"></label><?php _e('Etsy API Key', 'etsyshop'); ?></th>
-                                <td><input id="etsy_shop_api_key" name="etsy_shop_api_key" type="text" size="25" value="<?php echo get_option( 'etsy_shop_api_key' ); ?>" class="regular-text code" />
+                    <th scope="row">
+                        <label for="etsy_shop_api_key"></label><?php _e('Etsy API Key', 'etsyshop'); ?>
+                    </th>
+                    <td>
+                        <input id="etsy_shop_api_key" name="etsy_shop_api_key" type="text" size="25" value="<?php echo get_option( 'etsy_shop_api_key' ); ?>" class="regular-text code" />
                                     <?php if ( !is_wp_error( etsy_shop_testAPIKey()) ) { ?>
                                         <span id="etsy_shop_api_key_status" style="color:green;font-weight:bold;">Your API Key is valid</span>
                                     <?php } elseif ( get_option('etsy_shop_api_key') ) { ?>
                                         <span id="etsy_shop_api_key_status" style="color:red;font-weight:bold;">You API Key is invalid</span>
                                     <?php } ?>
                                     <p class="description">
-                                    <?php echo sprintf( __('You may get an Etsy API Key by <a href="%1$s">Creating a new Etsy App</a>', 'etsyshop' ), 'http://www.etsy.com/developers/register' ); ?></p></td>
-                        </tr>
+                                    <?php echo sprintf( __('You may get an Etsy API Key by <a href="%1$s">Creating a new Etsy App</a>', 'etsyshop' ), 'http://www.etsy.com/developers/register' ); ?></p>
+                    </td>
+                 </tr>
+                 <tr valign="top">
+                    <th scope="row">
+                        <label for="etsy_shop_api_key"></label><?php _e('Debug Mode', 'etsyshop'); ?></th>
+                            <td>
+                                <input id="etsy_shop_debug_mode" name="etsy_shop_debug_mode" type="checkbox" value="1" <?php checked( '1', get_option( 'etsy_shop_debug_mode' ) ); ?> />
+                                    <p class="description">
+                                    <?php echo __( 'Useful if you wan\'t to post a bug on the forum', 'etsyshop' ); ?>
+                                    </p>
+                            </td>
+                 </tr>
                         <tr valign="top">
                                 <th scope="row"><?php _e('Cache Status', 'etsyshop'); ?></th>
                                 <td>
