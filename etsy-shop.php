@@ -7,7 +7,7 @@ Plugin Name: Etsy Shop
 Plugin URI: http://wordpress.org/extend/plugins/etsy-shop/
 Description: Inserts Etsy products in page or post using bracket/shortcode method.
 Author: Frédéric Sheedy
-Version: 0.9.3
+Version: 0.9.4alpha
 */
 
 /*  
@@ -35,7 +35,7 @@ Version: 0.9.3
  * TODO: get Etsy translations
  */
 
-define( 'ETSY_SHOP_VERSION',  '0.9.3');
+define( 'ETSY_SHOP_VERSION',  '0.9.4alpha');
 define( 'ETSY_SHOP_CACHE_LIFE',  21600 ); // 6 hours in seconds
 
 // load translation
@@ -84,8 +84,8 @@ function etsy_shop_post( $the_content ) {
 
             $args = explode( ";", $tagargs );
             if ( sizeof( $args ) > 1 ) {
-                $etsy_shop_id = $args[0];
-                $etsy_section_id = $args[1];
+                $etsy_shop_id = preg_replace( '/[^a-z0-9]/', '', $args[0] );
+                $etsy_section_id = preg_replace( '/[^a-z0-9]/', '', $args[1] );
                                 
                 if ( $etsy_shop_id != '' || $etsy_section_id != '' ) {
                     // generate listing for shop section
@@ -282,7 +282,7 @@ function etsy_shop_optionsPage() {
     if ( isset( $_POST['submit'] ) ) {
         // did the user enter an API Key?
         if ( isset( $_POST['etsy_shop_api_key'] ) ) {
-            $etsy_shop_api_key = wp_filter_nohtml_kses( str_replace( ' ', '', $_POST['etsy_shop_api_key'] ) );
+            $etsy_shop_api_key = wp_filter_nohtml_kses( preg_replace( '/[^a-z0-9]/', '', $_POST['etsy_shop_api_key'] ) );
             update_option( 'etsy_shop_api_key', $etsy_shop_api_key );
 
             // and remember to note the update to user
