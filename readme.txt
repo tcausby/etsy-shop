@@ -1,17 +1,18 @@
 === Etsy Shop ===
 Contributors: fsheedy
+Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=9RPPQUY4M2AHL&lc=CA&item_name=Etsy%2dShop%20Wordpress%20Plugin&currency_code=CAD&bn=PP%2dDonationsBF%3abtn_donate_LG%2egif%3aNonHosted
 Tags: etsy, etsy listing, bracket, shortcode, shopping, shop, store, sell
-Tested up to: 3.4.2
+Tested up to: 3.5.1
 Requires at least: 3.4.2
 Stable tag: 0.9.3
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-This plugin allows users to insert Etsy Shop sections in pages or posts using the bracket/shortcode method.
+Plugin that allow you to insert Etsy Shop sections in pages or posts using the bracket/shortcode method.
 
 == Description ==
 
-This plugin allows users to inserts Etsy products in pages or posts using the bracket/shortcode method. This enable Etsy users to share their products through their blog!  
+Plugin that allow you to insert Etsy Shop sections in pages or posts using the bracket/shortcode method. This enable Etsy users to share their products through their blog!  
 
 == Installation ==
 

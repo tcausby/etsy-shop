@@ -29,7 +29,8 @@ Version: 0.9.4alpha
 
 /* Roadmap to version 1.x
  * TODO: touch() file in tmp folder
- * TODO: reset cache function
+ * TODO: reset cache function 
+ * TODO: edit cache life
  * TODO: allow more than 25 items
  * TODO: customize currency
  * TODO: get Etsy translations
@@ -63,7 +64,6 @@ function etsy_shop_activate() {
 // plugin activation
 register_activation_hook( __FILE__, 'etsy_shop_activate' );
 
-
 // process the content of a page or post
 add_filter( 'the_content', 'etsy_shop_post' );
 add_filter( 'the_excerpt','etsy_shop_post' );
@@ -84,8 +84,10 @@ function etsy_shop_post( $the_content ) {
 
             $args = explode( ";", $tagargs );
             if ( sizeof( $args ) > 1 ) {
-                $etsy_shop_id = preg_replace( '/[^a-z0-9]/', '', $args[0] );
-                $etsy_section_id = preg_replace( '/[^a-z0-9]/', '', $args[1] );
+                // Filter Shop ID and Section ID
+                $etsy_shop_id = preg_replace( '/[^a-zA-Z0-9,]/', '', $args[0] );
+                $etsy_section_id = preg_replace( '/[^a-zA-Z0-9,]/', '', $args[1] );
+                
                                 
                 if ( $etsy_shop_id != '' || $etsy_section_id != '' ) {
                     // generate listing for shop section
@@ -418,9 +420,9 @@ function etsy_shop_warning() {
 
 function etsy_shop_plugin_action_links( $links, $file ) {
     if ( $file == plugin_basename( dirname( __FILE__ ).'/etsy-shop.php' ) ) {
-        $links[] = '<a href="options-general.php?page=etsy-shop.php">' . __( 'Settings' ) . '</a>';
+        $links[] = '<a href="' . admin_url( 'options-general.php?page=etsy-shop.php' ) . '">'.__( 'Settings' ).'</a>';
     }
-    
+
     return $links;
 }
 
