@@ -96,8 +96,16 @@ function etsy_shop_post( $the_content ) {
                         if ( !is_wp_error( $listings ) ) {
                             $tags = '<table class="etsy-shop-listing-table"><tr>';
                             $n = 1;
+                            
+                            //verify in we use target blank
+                            if ( get_option( 'etsy_shop_target_blank' ) ) {
+                                $target = '_blank';
+                            } else {
+                                $target = '_self';
+                            }
+                            
                             foreach ( $listings->results as $result ) {
-                                $listing_html = etsy_shop_generateListing( $result->listing_id, $result->title, $result->state, $result->price, $result->currency_code, $result->quantity, $result->url, $result->Images[0]->url_170x135 );
+                                $listing_html = etsy_shop_generateListing( $result->listing_id, $result->title, $result->state, $result->price, $result->currency_code, $result->quantity, $result->url, $result->Images[0]->url_170x135, $target );
                                 if ( $listing_html !== false ) {
                                     $tags = $tags.'<td class="etsy-shop-listing">'.$listing_html.'</td>';
                                     $n++;
@@ -225,7 +233,7 @@ function etsy_shop_api_request( $etsy_request, $args = NULL, $noDebug = NULL ) {
     return $request_body;
 }
 
-function etsy_shop_generateListing($listing_id, $title, $state, $price, $currency_code, $quantity, $url, $url_170x135) {
+function etsy_shop_generateListing($listing_id, $title, $state, $price, $currency_code, $quantity, $url, $url_170x135, $target) {
     if ( strlen( $title ) > 18 ) {
         $title = substr( $title, 0, 25 );
         $title .= "...";
@@ -236,16 +244,16 @@ function etsy_shop_generateListing($listing_id, $title, $state, $price, $currenc
         $state = __( 'Available', 'etsyshop' );
         
         $script_tags =  '
-            <div class="etsy-shop-listing-card" id="' . $listing_id . '">
-                <a title="' . $title . '" href="' . $url . '" class="etsy-shop-listing-thumb">
+            <div class="etsy-shop-listing-card" id="' . $listing_id . '" style="text-align: center;">
+                <a title="' . $title . '" href="' . $url . '" target="' . $target . '" class="etsy-shop-listing-thumb">
                     <img alt="' . $title . '" src="' . $url_170x135 . '">          
                 </a>
                 <div class="etsy-shop-listing-detail">
                     <p class="etsy-shop-listing-title">
-                        <a title="' . $title . '" href="' . $url . '">'.$title.'</a>
+                        <a title="' . $title . '" href="' . $url . '" target="' . $target . '">'.$title.'</a>
                     </p>
                     <p class="etsy-shop-listing-maker">
-                        <a title="' . $title . '" href="' . $url . '">'.$state.'</a>
+                        <a title="' . $title . '" href="' . $url . '" target="' . $target . '">'.$state.'</a>
                     </p>
                 </div>
                 <p class="etsy-shop-listing-price">$'.$price.' <span class="etsy-shop-currency-code">'.$currency_code.'</span></p>
@@ -307,6 +315,23 @@ function etsy_shop_optionsPage() {
             // and remember to note the update to user
             $updated = true;
         }
+        
+        // did the user enter target new window for links?
+        if ( isset( $_POST['etsy_shop_target_blank'] ) ) {
+            $etsy_shop_target_blank = wp_filter_nohtml_kses( $_POST['etsy_shop_target_blank'] );
+            //die($etsy_shop_debug_mode);
+            update_option( 'etsy_shop_target_blank', $etsy_shop_target_blank );
+
+            // and remember to note the update to user
+            $updated = true;
+        }else {
+            $etsy_shop_target_blank = 0;
+            //die($etsy_shop_debug_mode);
+            update_option( 'etsy_shop_target_blank', $etsy_shop_target_blank );
+
+            // and remember to note the update to user
+            $updated = true;
+        }
     }
 
     // grab the Etsy API key
@@ -321,6 +346,13 @@ function etsy_shop_optionsPage() {
         $etsy_shop_debug_mode = get_option( 'etsy_shop_debug_mode' );
     } else {
         add_option( 'etsy_shop_debug_mode', '0' );
+    }
+    
+    // grab the Etsy Target for links
+    if( get_option( 'etsy_shop_target_blank' ) ) {
+        $etsy_shop_target_blank = get_option( 'etsy_shop_target_blank' );
+    } else {
+        add_option( 'etsy_shop_target_blank', '0' );
     }
 
     if ( $updated ) {
@@ -354,11 +386,31 @@ function etsy_shop_optionsPage() {
                             <td>
                                 <input id="etsy_shop_debug_mode" name="etsy_shop_debug_mode" type="checkbox" value="1" <?php checked( '1', get_option( 'etsy_shop_debug_mode' ) ); ?> />
                                     <p class="description">
-                                    <?php echo __( 'Useful if you wan\'t to post a bug on the forum', 'etsyshop' ); ?>
+                                    <?php echo __( 'Useful if you want to post a bug on the forum', 'etsyshop' ); ?>
                                     </p>
                             </td>
                  </tr>
-                        <tr valign="top">
+                 <tr valign="top">
+                     <th scope="row">
+                         <label for="etsy_shop_target_blank"></label><?php _e('Link to new window', 'etsyshop'); ?></th>
+                             <td>
+                                <input id="etsy_shop_target_blank" name="etsy_shop_target_blank" type="checkbox" value="1" <?php checked( '1', get_option( 'etsy_shop_target_blank' ) ); ?> />
+                                    <p class="description">
+                                    <?php echo __( 'If you want your links to open a page in a new window', 'etsyshop' ); ?>
+                                    </p>
+                             </td>
+                 </tr>
+                 <tr valign="top">
+                     <th scope="row">
+                         <label for="etsy_shop_cache_life"></label><?php _e('Cache life', 'etsyshop'); ?></th>
+                             <td>
+                                 <?php _e('6 hours.', 'etsyshop'); ?>
+                                  <p class="description">
+                                    <?php echo __( 'Time before the cache update the listing', 'etsyshop' ); ?>
+                                  </p>
+                             </td>
+                 </tr>
+                 <tr valign="top">
                                 <th scope="row"><?php _e('Cache Status', 'etsyshop'); ?></th>
                                 <td>
                                     <?php if (get_option('etsy_shop_api_key')) { ?>
@@ -390,9 +442,12 @@ function etsy_shop_optionsPage() {
                                 </td>
                         </tr>
         </table>
-            
-        <h3 class="title"><?php _e( 'Need more features?', 'etsyshop' ); ?></h3>
+        
+        <h3 class="title"><?php _e( 'Need help?', 'etsyshop' ); ?></h3>
         <p><?php echo sprintf( __( 'Please open a <a href="%1$s">new topic</a> on Wordpress.org Forum. This is your only way to let me know!', 'etsyshop' ), 'http://wordpress.org/support/plugin/etsy-shop' ); ?></p>
+
+        <h3 class="title"><?php _e( 'Need more features?', 'etsyshop' ); ?></h3>
+        <p><?php echo sprintf( __( 'Please sponsor a feature go to <a href="%1$s">Donation Page</a>.', 'etsyshop' ), 'http://fsheedy.wordpress.com/etsy-shop-plugin/donate/' ); ?></p>
 
         <p class="submit">
                 <input type="submit" name="submit" id="submit" class="button-primary" value="<?php _e( 'Save Changes', 'etsyshop' ); ?>" />

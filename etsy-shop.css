@@ -7,11 +7,12 @@ td.etsy-shop-listing {
 }
 
 .etsy-shop-listing-card {
-    background-color: white; 
-    border: 1px solid #EAEAEA; 
-    display: block; 
+    background-color: white;
+    border: 1px solid #EAEAEA;
+    display: block;
     width:172px; 
-    margin: 0; 
+    text-align: center;
+    margin: auto;
     padding: 6px; 
     font-family: Arial,Helvetica,sans-serif; 
     font-size: 12px;
@@ -74,7 +75,7 @@ td.etsy-shop-listing {
 .etsy-shop-listing-price {
     color: #78C042; 
     float: right; 
-    line-height: 14px !important; 
+    line-height: 14px !important;
     margin-top: -14px;
 }
 
