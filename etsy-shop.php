@@ -7,7 +7,7 @@ Plugin Name: Etsy Shop
 Plugin URI: http://wordpress.org/extend/plugins/etsy-shop/
 Description: Inserts Etsy products in page or post using bracket/shortcode method.
 Author: Frédéric Sheedy
-Version: 0.9.4
+Version: 0.9.5
 */
 
 /*  
@@ -36,7 +36,7 @@ Version: 0.9.4
  * TODO: get Etsy translations
  */
 
-define( 'ETSY_SHOP_VERSION',  '0.9.4');
+define( 'ETSY_SHOP_VERSION',  '0.9.5');
 define( 'ETSY_SHOP_CACHE_LIFE',  21600 ); // 6 hours in seconds
 
 // load translation
@@ -207,7 +207,7 @@ function etsy_shop_testAPIKey() {
 
 function etsy_shop_api_request( $etsy_request, $args = NULL, $noDebug = NULL ) {
     $etsy_api_key = get_option( 'etsy_shop_api_key' );
-    $url = "http://openapi.etsy.com/v2/$etsy_request?api_key=" . $etsy_api_key . $args;
+    $url = "https://openapi.etsy.com/v2/$etsy_request?api_key=" . $etsy_api_key . $args;
     
     $request = wp_remote_request( $url );
     
@@ -224,7 +224,11 @@ function etsy_shop_api_request( $etsy_request, $args = NULL, $noDebug = NULL ) {
         if ( $request['response']['code'] == 200 ) {
             $request_body = $request['body'];
         } else {
-            return  new WP_Error( 'etsy-shop', __( 'Etsy Shop: API reponse should be HTTP 200', 'etsyshop' ) );
+            if ( $request['headers']['x-error-detail'] ==  'Not all requested shop sections exist.' ) {
+                return  new WP_Error( 'etsy-shop', __( 'Etsy Shop: Your section ID is invalid.', 'etsyshop' ) );
+            } else {
+                return  new WP_Error( 'etsy-shop', __( 'Etsy Shop: API reponse should be HTTP 200 <br>API Error Description:', 'etsyshop' ) . ' ' . $request['headers']['x-error-detail'] );
+            }
         }
     } else {
         return  new WP_Error( 'etsy-shop', __( 'Etsy Shop: Error on API Request', 'etsyshop' ) );
