@@ -7,11 +7,11 @@ Plugin Name: Etsy Shop
 Plugin URI: http://wordpress.org/extend/plugins/etsy-shop/
 Description: Inserts Etsy products in page or post using bracket/shortcode method.
 Author: Frédéric Sheedy
-Version: 0.9.5
+Version: 0.10
 */
 
 /*  
- * Copyright 2011-2012  Frédéric Sheedy  (email : sheedf@gmail.com)
+ * Copyright 2011-2014  Frédéric Sheedy  (email : sheedf@gmail.com)
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2, as 
@@ -34,13 +34,21 @@ Version: 0.9.5
  * TODO: allow more than 25 items
  * TODO: customize currency
  * TODO: get Etsy translations
+ * TODO: Use Transients API
+ * TODO: Add MCE Button
  */
 
-define( 'ETSY_SHOP_VERSION',  '0.9.5');
+define( 'ETSY_SHOP_VERSION',  '0.10');
 define( 'ETSY_SHOP_CACHE_LIFE',  21600 ); // 6 hours in seconds
 
 // load translation
 add_action( 'init', 'etsy_shop_load_translation_file' );
+
+// plugin activation
+register_activation_hook( __FILE__, 'etsy_shop_activate' );
+
+// add Settings link
+add_filter( 'plugin_action_links', 'etsy_shop_plugin_action_links', 10, 2 );
  
 function etsy_shop_load_translation_file() {
     $plugin_path = plugin_basename( dirname( __FILE__ ) .'/translations' );
@@ -61,9 +69,7 @@ function etsy_shop_activate() {
     }
 }
 
-// plugin activation
-register_activation_hook( __FILE__, 'etsy_shop_activate' );
-
+/* === Used for backward-compatibility 0.x versions === */
 // process the content of a page or post
 add_filter( 'the_content', 'etsy_shop_post' );
 add_filter( 'the_excerpt','etsy_shop_post' );
@@ -84,53 +90,10 @@ function etsy_shop_post( $the_content ) {
 
             $args = explode( ";", $tagargs );
             if ( sizeof( $args ) > 1 ) {
-                // Filter Shop ID and Section ID
-                $etsy_shop_id = preg_replace( '/[^a-zA-Z0-9,]/', '', $args[0] );
-                $etsy_section_id = preg_replace( '/[^a-zA-Z0-9,]/', '', $args[1] );
-                
-                                
-                if ( $etsy_shop_id != '' || $etsy_section_id != '' ) {
-                    // generate listing for shop section
-                    $listings = etsy_shop_getShopSectionListings( $etsy_shop_id, $etsy_section_id );
-                    if ( !get_option( 'etsy_shop_debug_mode' ) ) {
-                        if ( !is_wp_error( $listings ) ) {
-                            $tags = '<table class="etsy-shop-listing-table"><tr>';
-                            $n = 1;
-                            
-                            //verify in we use target blank
-                            if ( get_option( 'etsy_shop_target_blank' ) ) {
-                                $target = '_blank';
-                            } else {
-                                $target = '_self';
-                            }
-                            
-                            foreach ( $listings->results as $result ) {
-                                $listing_html = etsy_shop_generateListing( $result->listing_id, $result->title, $result->state, $result->price, $result->currency_code, $result->quantity, $result->url, $result->Images[0]->url_170x135, $target );
-                                if ( $listing_html !== false ) {
-                                    $tags = $tags.'<td class="etsy-shop-listing">'.$listing_html.'</td>';
-                                    $n++;
-                                    if ( $n == 4 ) {
-                                        $tags = $tags.'</tr><tr>';
-                                        $n = 1;
-                                    }
-                                }
-                            }
-                            $tags = $tags.'</tr></table>';
-
-                            $new_content = substr( $the_content,0,$spos );
-                            $new_content .= $tags;
-                            $new_content .= substr( $the_content,( $epos+1 ) );
-                        } else {
-                            $new_content = $listings->get_error_message();
-                        }
-                    } else {
-                        print_r( '<h2>' . __( 'Etsy Shop Debug Mode', 'etsyshop' ) . '</h2>' );
-                        print_r( $listings );
-                    }
-                } else {
-                    // must have 2 arguments
-                    $new_content = "Etsy Shop: empty arguments";
-                }
+                $tags = etsy_shop_process( $args[0], $args[1] );
+                $new_content = substr( $the_content,0,$spos );
+                $new_content .= $tags;
+                $new_content .= substr( $the_content,( $epos+1 ) );
             } else {
                 // must have 2 arguments
                 $new_content = "Etsy Shop: missing arguments";
@@ -148,15 +111,82 @@ function etsy_shop_post( $the_content ) {
     } else {
         // no API Key set, return the content
         return $the_content;
+    }            
+                
+}
+/* === END: Used for backward-compatibility 0.x versions === */
+
+function etsy_shop_process( $shop_id, $section_id ) {
+    // Filter Shop ID and Section ID
+    $shop_id = preg_replace( '/[^a-zA-Z0-9,]/', '', $shop_id );
+    $section_id = preg_replace( '/[^a-zA-Z0-9,]/', '', $section_id );
+                
+    if ( $shop_id != '' || $section_id != '' ) {
+        // generate listing for shop section
+        $listings = etsy_shop_getShopSectionListings( $shop_id, $section_id );
+        if ( !get_option( 'etsy_shop_debug_mode' ) ) {
+            if ( !is_wp_error( $listings ) ) {
+               $data = '<table class="etsy-shop-listing-table"><tr>';
+               $n = 1;
+               
+               //verify if we use target blank
+               if ( get_option( 'etsy_shop_target_blank' ) ) {
+                   $target = '_blank';
+               } else {
+                   $target = '_self';
+               }
+               
+               foreach ( $listings->results as $result ) {
+                   $listing_html = etsy_shop_generateListing( $result->listing_id, $result->title, $result->state, $result->price, $result->currency_code, $result->quantity, $result->url, $result->Images[0]->url_170x135, $target );
+                   if ( $listing_html !== false ) {
+                       $data = $data.'<td class="etsy-shop-listing">'.$listing_html.'</td>';
+                       $n++;
+                       if ( $n == 4 ) {
+                           $data = $data.'</tr><tr>';
+                           $n = 1;
+                       }
+                   }
+                }
+                $data = $data.'</tr></table>';
+            } else {
+                $data = $listings->get_error_message();
+            }
+        } else {
+            print_r( '<h2>' . __( 'Etsy Shop Debug Mode', 'etsyshop' ) . '</h2>' );
+            print_r( $listings );
+        }
+    } else {
+        // must have 2 arguments
+        $data = "Etsy Shop: empty arguments";
+    }
+
+    return $data;
+}
+
+// Process shortcode
+function etsy_shop_shortcode( $atts ) {
+    // if API Key exist
+    if ( get_option( 'etsy_shop_api_key' ) ) {
+        $attributes = shortcode_atts( array(
+            'shop_name' => null,
+            'section_id' => null,
+        ), $atts );
+        
+        $content = etsy_shop_process( $attributes['shop_name'], $attributes['section_id'] );
+        return $content;
+    } else {
+        // no API Key set, return the content
+        return 'Etsy Shop: Shortcode detected but API KEY is not set.';
     }
 }
+add_shortcode( 'etsy-shop', 'etsy_shop_shortcode' );
 
 function etsy_shop_getShopSectionListings( $etsy_shop_id, $etsy_section_id ) {
     $etsy_cache_file = dirname( __FILE__ ).'/tmp/'.$etsy_shop_id.'-'.$etsy_section_id.'_cache.json';
     
     // if no cache file exist
     if (!file_exists( $etsy_cache_file ) or ( time() - filemtime( $etsy_cache_file ) >= ETSY_SHOP_CACHE_LIFE ) or get_option( 'etsy_shop_debug_mode' ) ) {
-        $reponse = etsy_shop_api_request( "shops/$etsy_shop_id/sections/$etsy_section_id/listings/active", '&includes=Images' );
+        $reponse = etsy_shop_api_request( "shops/$etsy_shop_id/sections/$etsy_section_id/listings/active", '&limit=100&includes=Images' );
         if ( !is_wp_error( $reponse ) ) {
             // if request OK
             $tmp_file = $etsy_cache_file.rand().'.tmp';
@@ -484,8 +514,5 @@ function etsy_shop_plugin_action_links( $links, $file ) {
 
     return $links;
 }
-
-// add Settings link
-add_filter( 'plugin_action_links', 'etsy_shop_plugin_action_links', 10, 2 );
 
 ?>
