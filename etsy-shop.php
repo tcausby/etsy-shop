@@ -7,7 +7,7 @@ Plugin Name: Etsy Shop
 Plugin URI: http://wordpress.org/extend/plugins/etsy-shop/
 Description: Inserts Etsy products in page or post using bracket/shortcode method.
 Author: Frédéric Sheedy
-Version: 0.10
+Version: 0.11
 */
 
 /*
