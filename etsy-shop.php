@@ -10,7 +10,7 @@ Author: Frédéric Sheedy
 Version: 0.10
 */
 
-/*  
+/*
  * Copyright 2011-2014  Frédéric Sheedy  (email : sheedf@gmail.com)
  *
  * This program is free software; you can redistribute it and/or modify
@@ -29,7 +29,7 @@ Version: 0.10
 
 /* Roadmap to version 1.x
  * TODO: touch() file in tmp folder
- * TODO: reset cache function 
+ * TODO: reset cache function
  * TODO: edit cache life
  * TODO: allow more than 25 items
  * TODO: customize currency
@@ -38,7 +38,7 @@ Version: 0.10
  * TODO: Add MCE Button
  */
 
-define( 'ETSY_SHOP_VERSION',  '0.10');
+define( 'ETSY_SHOP_VERSION',  '0.11');
 define( 'ETSY_SHOP_CACHE_LIFE',  21600 ); // 6 hours in seconds
 
 // load translation
@@ -49,7 +49,7 @@ register_activation_hook( __FILE__, 'etsy_shop_activate' );
 
 // add Settings link
 add_filter( 'plugin_action_links', 'etsy_shop_plugin_action_links', 10, 2 );
- 
+
 function etsy_shop_load_translation_file() {
     $plugin_path = plugin_basename( dirname( __FILE__ ) .'/translations' );
     load_plugin_textdomain( 'etsyshop', false, $plugin_path );
@@ -63,6 +63,11 @@ function etsy_shop_activate() {
     if ( $etsy_shop_DB_version != ETSY_SHOP_VERSION) {
 
         // upgrade logic here
+
+        // initialize timeout option if not already there
+        if( !get_option( 'etsy_shop_timeout' ) ) {
+            add_option( 'etsy_shop_timeout', '10' );
+        }
 
         // update the version value
         update_option( 'etsy_shop_version', ETSY_SHOP_VERSION );
@@ -80,7 +85,7 @@ function etsy_shop_post( $the_content ) {
     if ( get_option( 'etsy_shop_api_key' ) ) {
         $etsy_start_tag = "[etsy-include=";
         $etsy_end_tag = "]";
-        
+
         $spos = strpos( $the_content, $etsy_start_tag );
         if ( $spos !== false ) {
             $epos = strpos( $the_content, $etsy_end_tag, $spos );
@@ -98,7 +103,7 @@ function etsy_shop_post( $the_content ) {
                 // must have 2 arguments
                 $new_content = "Etsy Shop: missing arguments";
             }
-            
+
             // other bracket to parse?
             if ( $epos+1 < strlen( $the_content ) ) {
                 $new_content = etsy_shop_post( $new_content );
@@ -111,8 +116,8 @@ function etsy_shop_post( $the_content ) {
     } else {
         // no API Key set, return the content
         return $the_content;
-    }            
-                
+    }
+
 }
 /* === END: Used for backward-compatibility 0.x versions === */
 
@@ -120,7 +125,7 @@ function etsy_shop_process( $shop_id, $section_id ) {
     // Filter Shop ID and Section ID
     $shop_id = preg_replace( '/[^a-zA-Z0-9,]/', '', $shop_id );
     $section_id = preg_replace( '/[^a-zA-Z0-9,]/', '', $section_id );
-                
+
     if ( $shop_id != '' || $section_id != '' ) {
         // generate listing for shop section
         $listings = etsy_shop_getShopSectionListings( $shop_id, $section_id );
@@ -128,14 +133,14 @@ function etsy_shop_process( $shop_id, $section_id ) {
             if ( !is_wp_error( $listings ) ) {
                $data = '<table class="etsy-shop-listing-table"><tr>';
                $n = 1;
-               
+
                //verify if we use target blank
                if ( get_option( 'etsy_shop_target_blank' ) ) {
                    $target = '_blank';
                } else {
                    $target = '_self';
                }
-               
+
                foreach ( $listings->results as $result ) {
                    $listing_html = etsy_shop_generateListing( $result->listing_id, $result->title, $result->state, $result->price, $result->currency_code, $result->quantity, $result->url, $result->Images[0]->url_170x135, $target );
                    if ( $listing_html !== false ) {
@@ -171,7 +176,7 @@ function etsy_shop_shortcode( $atts ) {
             'shop_name' => null,
             'section_id' => null,
         ), $atts );
-        
+
         $content = etsy_shop_process( $attributes['shop_name'], $attributes['section_id'] );
         return $content;
     } else {
@@ -183,7 +188,7 @@ add_shortcode( 'etsy-shop', 'etsy_shop_shortcode' );
 
 function etsy_shop_getShopSectionListings( $etsy_shop_id, $etsy_section_id ) {
     $etsy_cache_file = dirname( __FILE__ ).'/tmp/'.$etsy_shop_id.'-'.$etsy_section_id.'_cache.json';
-    
+
     // if no cache file exist
     if (!file_exists( $etsy_cache_file ) or ( time() - filemtime( $etsy_cache_file ) >= ETSY_SHOP_CACHE_LIFE ) or get_option( 'etsy_shop_debug_mode' ) ) {
         $reponse = etsy_shop_api_request( "shops/$etsy_shop_id/sections/$etsy_section_id/listings/active", '&limit=100&includes=Images' );
@@ -200,13 +205,13 @@ function etsy_shop_getShopSectionListings( $etsy_shop_id, $etsy_section_id ) {
         // read cache file
         $reponse = file_get_contents( $etsy_cache_file );
     }
-    
+
     if ( get_option( 'etsy_shop_debug_mode' ) ) {
         $file_content = file_get_contents( $etsy_cache_file );
         print_r( '<h3>--- Etsy Cache File:' . $etsy_cache_file . ' ---</h3>' );
         print_r( $file_content );
     }
-    
+
     $data = json_decode( $reponse );
     return $data;
 }
@@ -219,7 +224,7 @@ function etsy_shop_getShopSection( $etsy_shop_id, $etsy_section_id ) {
         // return WP_Error
         return $reponse;
     }
-    
+
     return $data;
 }
 
@@ -231,16 +236,17 @@ function etsy_shop_testAPIKey() {
         // return WP_Error
         return $reponse;
     }
-    
+
     return $data;
 }
 
 function etsy_shop_api_request( $etsy_request, $args = NULL, $noDebug = NULL ) {
     $etsy_api_key = get_option( 'etsy_shop_api_key' );
     $url = "https://openapi.etsy.com/v2/$etsy_request?api_key=" . $etsy_api_key . $args;
-    
-    $request = wp_remote_request( $url );
-    
+    $wp_request_args = array( 'timeout' => get_option( 'etsy_shop_timeout' ) );
+
+    $request = wp_remote_request( $url , $wp_request_args );
+
     if ( get_option( 'etsy_shop_debug_mode' ) AND !$noDebug ) {
         echo( '<h3>--- Etsy Debug Mode - version ' . ETSY_SHOP_VERSION . ' ---</h3>' );
         echo( '<p>Go to Etsy Shop Options page if you wan\'t to disable debug output.</p>' );
@@ -249,13 +255,15 @@ function etsy_shop_api_request( $etsy_request, $args = NULL, $noDebug = NULL ) {
         print_r( '<h3>--- Etsy Response ---</h3>' );
         print_r( $request );
     }
-    
+
     if ( !is_wp_error( $request ) ) {
         if ( $request['response']['code'] == 200 ) {
             $request_body = $request['body'];
         } else {
             if ( $request['headers']['x-error-detail'] ==  'Not all requested shop sections exist.' ) {
                 return  new WP_Error( 'etsy-shop', __( 'Etsy Shop: Your section ID is invalid.', 'etsyshop' ) );
+            } elseif ( $request['response']['code'] == 0 )  {
+                return  new WP_Error( 'etsy-shop', __( 'Etsy Shop: The plugin timed out waiting for etsy.com reponse. Please change Time out value in the Etsy Shop Options page.', 'etsyshop' ) );
             } else {
                 return  new WP_Error( 'etsy-shop', __( 'Etsy Shop: API reponse should be HTTP 200 <br>API Error Description:', 'etsyshop' ) . ' ' . $request['headers']['x-error-detail'] );
             }
@@ -263,7 +271,7 @@ function etsy_shop_api_request( $etsy_request, $args = NULL, $noDebug = NULL ) {
     } else {
         return  new WP_Error( 'etsy-shop', __( 'Etsy Shop: Error on API Request', 'etsyshop' ) );
     }
-    
+
     return $request_body;
 }
 
@@ -272,11 +280,11 @@ function etsy_shop_generateListing($listing_id, $title, $state, $price, $currenc
         $title = substr( $title, 0, 25 );
         $title .= "...";
     }
-    
+
     // if the Shop Item is active
     if ( $state == 'active' ) {
         $state = __( 'Available', 'etsyshop' );
-        
+
         $script_tags =  '
             <div class="etsy-shop-listing-card" id="' . $listing_id . '" style="text-align: center;">
                 <a title="' . $title . '" href="' . $url . '" target="' . $target . '" class="etsy-shop-listing-thumb">
@@ -292,7 +300,7 @@ function etsy_shop_generateListing($listing_id, $title, $state, $price, $currenc
                 </div>
                 <p class="etsy-shop-listing-price">$'.$price.' <span class="etsy-shop-currency-code">'.$currency_code.'</span></p>
             </div>'; 
-            
+
         return $script_tags;
     } else {
         return false;
@@ -332,7 +340,7 @@ function etsy_shop_optionsPage() {
             // and remember to note the update to user
             $updated = true;
         }
-    
+
         // did the user enter Debug mode?
         if ( isset( $_POST['etsy_shop_debug_mode'] ) ) {
             $etsy_shop_debug_mode = wp_filter_nohtml_kses( $_POST['etsy_shop_debug_mode'] );
@@ -349,7 +357,7 @@ function etsy_shop_optionsPage() {
             // and remember to note the update to user
             $updated = true;
         }
-        
+
         // did the user enter target new window for links?
         if ( isset( $_POST['etsy_shop_target_blank'] ) ) {
             $etsy_shop_target_blank = wp_filter_nohtml_kses( $_POST['etsy_shop_target_blank'] );
@@ -366,6 +374,15 @@ function etsy_shop_optionsPage() {
             // and remember to note the update to user
             $updated = true;
         }
+
+        // did the user enter an Timeout?
+        if ( isset( $_POST['etsy_shop_timeout'] ) ) {
+            $etsy_shop_timeout = wp_filter_nohtml_kses( preg_replace( '/[^0-9]/', '', $_POST['etsy_shop_timeout'] ) );
+            update_option( 'etsy_shop_timeout', $etsy_shop_timeout );
+
+            // and remember to note the update to user
+            $updated = true;
+        }
     }
 
     // grab the Etsy API key
@@ -374,19 +391,26 @@ function etsy_shop_optionsPage() {
     } else {
         add_option( 'etsy_shop_api_key', '' );
     }
-    
+
     // grab the Etsy Debug Mode
     if( get_option( 'etsy_shop_debug_mode' ) ) {
         $etsy_shop_debug_mode = get_option( 'etsy_shop_debug_mode' );
     } else {
         add_option( 'etsy_shop_debug_mode', '0' );
     }
-    
+
     // grab the Etsy Target for links
     if( get_option( 'etsy_shop_target_blank' ) ) {
         $etsy_shop_target_blank = get_option( 'etsy_shop_target_blank' );
     } else {
         add_option( 'etsy_shop_target_blank', '0' );
+    }
+
+    // grab the Etsy Tiomeout
+    if( get_option( 'etsy_shop_timeout' ) ) {
+        $etsy_shop_timeout = get_option( 'etsy_shop_timeout' );
+    } else {
+        add_option( 'etsy_shop_timeout', '10' );
     }
 
     if ( $updated ) {
@@ -436,6 +460,16 @@ function etsy_shop_optionsPage() {
                  </tr>
                  <tr valign="top">
                      <th scope="row">
+                         <label for="etsy_shop_timeout"></label><?php _e('Timeout', 'etsyshop'); ?></th>
+                             <td>
+                                 <input id="etsy_shop_timeout" name="etsy_shop_timeout" type="text" size="2" class="small-text" value="<?php echo get_option( 'etsy_shop_timeout' ); ?>" class="regular-text code" />
+                                    <p class="description">
+                                    <?php echo __( 'Time in seconds until a request times out. Default 10.', 'etsyshop' ); ?>
+                                    </p>
+                             </td>
+                 </tr>
+                 <tr valign="top">
+                     <th scope="row">
                          <label for="etsy_shop_cache_life"></label><?php _e('Cache life', 'etsyshop'); ?></th>
                              <td>
                                  <?php _e('6 hours.', 'etsyshop'); ?>
@@ -456,7 +490,7 @@ function etsy_shop_optionsPage() {
                                             <th>Last update</th>
                                         </tr>
                                         </thead>
-                                        <?php 
+                                        <?php
                                 $files = glob( dirname( __FILE__ ).'/tmp/*.json' );
                                 $time_zone = get_option('timezone_string');
                                 date_default_timezone_set( $time_zone );
@@ -476,7 +510,7 @@ function etsy_shop_optionsPage() {
                                 </td>
                         </tr>
         </table>
-        
+
         <h3 class="title"><?php _e( 'Need help?', 'etsyshop' ); ?></h3>
         <p><?php echo sprintf( __( 'Please open a <a href="%1$s">new topic</a> on Wordpress.org Forum. This is your only way to let me know!', 'etsyshop' ), 'http://wordpress.org/support/plugin/etsy-shop' ); ?></p>
 
@@ -486,7 +520,7 @@ function etsy_shop_optionsPage() {
         <p class="submit">
                 <input type="submit" name="submit" id="submit" class="button-primary" value="<?php _e( 'Save Changes', 'etsyshop' ); ?>" />
         </p>
-    
+
         </form>
     </div>
 <?php
@@ -502,7 +536,7 @@ function etsy_shop_warning() {
         function etsy_shop__api_key_warning() {
             echo "<div id='etsy-shop-warning' class='updated fade'><p><strong>".__( 'Etsy Shop is almost ready.', 'etsyshop' )."</strong> ".sprintf( __( 'You must <a href="%1$s">enter your Etsy API key</a> for it to work.', 'etsyshop' ), 'options-general.php?page=etsy-shop.php' )."</p></div>";
         }
-        
+
         add_action( 'admin_notices', 'etsy_shop__api_key_warning' );
     }
 }

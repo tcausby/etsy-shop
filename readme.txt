@@ -4,7 +4,7 @@ Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=9RPPQ
 Tags: etsy, etsy listing, bracket, shortcode, shopping, shop, store, sell
 Tested up to: 3.9.2
 Requires at least: 3.4.2
-Stable tag: 0.10
+Stable tag: 0.11
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -62,6 +62,9 @@ Please open a new topic in Forum, with all details.
 
 Please make sure that your API Key is valid.
 
+= How to integrate directly in template? =
+Use '<?php echo do_shortcode( '[etsy-shop shop_name="*your-etsy-shop-name*" section_id="*your-etsy-shop-setion-id*"]' ); ?>'
+
 == Screenshots ==
 
 1. Options Page
@@ -69,6 +72,10 @@ Please make sure that your API Key is valid.
 3. Edit Post to include Etsy Shop
 
 == Changelog ==
+
+= 0.11 =
+* Add the option to change time out value for requests to etsy servers
+* Time out value by default is 10 seconds instead of 5
 
 = 0.10 =
 * Compatbile with WP 3.9.2
