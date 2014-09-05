@@ -2,8 +2,8 @@
 Contributors: fsheedy
 Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=9RPPQUY4M2AHL&lc=CA&item_name=Etsy%2dShop%20Wordpress%20Plugin&currency_code=CAD&bn=PP%2dDonationsBF%3abtn_donate_LG%2egif%3aNonHosted
 Tags: etsy, etsy listing, bracket, shortcode, shopping, shop, store, sell
-Tested up to: 3.9.2
-Requires at least: 4.0
+Tested up to: 4.0
+Requires at least: 3.4.2
 Stable tag: 0.11
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
